@@ -9,3 +9,5 @@ Every prompt used, in order (including ones that didn't work).
    - Result: drafted docs/02-screens.md, docs/03-flows-rules.md, AGENTS.md.
 4. "OK, go with your recommendations" (Step 1 scaffold: root package.json + Procfile for Heroku, Tailwind v4, in-memory store, Gujarati proofreading at Step 7)
    - Result: scaffolded client/ (Vite+React+Tailwind, 7 placeholder routes, EN/GU toggle) and server/ (Express /api/health). Build + health check pass.
+5. "commit this and start step 2. I have checked the backend and the frontend and they are working fine."
+   - Result: Step 1 committed (033d1f4); Step 2 built Home + Join Queue with dummy data (client-side only).

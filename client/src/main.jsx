@@ -4,7 +4,9 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import './index.css'
 import { LangProvider } from './i18n/index.jsx'
 import Layout from './components/Layout.jsx'
-import { Admin, Barber, Display, Home, Join, NotFound, Reception, Status } from './pages/pages.jsx'
+import Home from './pages/Home.jsx'
+import Join from './pages/Join.jsx'
+import { Admin, Barber, Display, NotFound, Reception, Status } from './pages/pages.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
