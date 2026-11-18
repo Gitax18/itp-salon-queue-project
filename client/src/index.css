@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@theme {
+  --color-charcoal: #1F2937;
+  --color-charcoal-dark: #111827;
+  --color-charcoal-light: #374151;
+  --color-gold: #D4A017;
+  --color-gold-light: #E8B93A;
+  --radius-card: 1rem;
+}
+
+body {
+  margin: 0;
+  background: var(--color-charcoal);
+  color: #F9FAFB;
+  font-family: system-ui, -apple-system, "Noto Sans Gujarati", "Segoe UI", sans-serif;
+}

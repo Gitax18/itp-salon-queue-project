@@ -7,3 +7,5 @@ Every prompt used, in order (including ones that didn't work).
 2. (Approved plan) Draft docs/01-brief.md.
 3. "Approved with the brief of the project, now create further docs."
    - Result: drafted docs/02-screens.md, docs/03-flows-rules.md, AGENTS.md.
+4. "OK, go with your recommendations" (Step 1 scaffold: root package.json + Procfile for Heroku, Tailwind v4, in-memory store, Gujarati proofreading at Step 7)
+   - Result: scaffolded client/ (Vite+React+Tailwind, 7 placeholder routes, EN/GU toggle) and server/ (Express /api/health). Build + health check pass.

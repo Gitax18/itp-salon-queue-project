@@ -1,0 +1,11 @@
+{
+  "name": "salon-queue",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Salon queue management. Root package.json exists so Heroku can build the server/ folder.",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "heroku-postbuild": "npm install --prefix server",
+    "start": "npm start --prefix server"
+  }
+}
