@@ -1,10 +1,39 @@
 // API base comes from VITE_API_URL (Heroku URL in production). Empty = same origin (dev proxy in vite.config.js).
 const BASE = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
 
-export async function api(path, options = {}) {
+const PIN_KEY = 'salon-staff-pin'
+
+export function getStaffPin() {
+  try {
+    return sessionStorage.getItem(PIN_KEY) || ''
+  } catch {
+    return ''
+  }
+}
+export function setStaffPin(pin) {
+  try {
+    sessionStorage.setItem(PIN_KEY, pin)
+  } catch {
+    /* ignore */
+  }
+}
+export function clearStaffPin() {
+  try {
+    sessionStorage.removeItem(PIN_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
+// options.staff = true sends the staff PIN header.
+export async function api(path, { staff = false, ...options } = {}) {
   const res = await fetch(BASE + path, {
     ...options,
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(staff ? { 'x-staff-pin': getStaffPin() } : {}),
+      ...(options.headers || {}),
+    },
   })
   let body = null
   try {
@@ -21,5 +50,5 @@ export async function api(path, options = {}) {
   return body
 }
 
-export const postJson = (path, data) =>
-  api(path, { method: 'POST', body: JSON.stringify(data ?? {}) })
+export const postJson = (path, data, options) =>
+  api(path, { method: 'POST', body: JSON.stringify(data ?? {}), ...options })

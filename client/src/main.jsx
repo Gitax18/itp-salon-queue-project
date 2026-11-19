@@ -7,7 +7,8 @@ import Layout from './components/Layout.jsx'
 import Home from './pages/Home.jsx'
 import Join from './pages/Join.jsx'
 import Status from './pages/Status.jsx'
-import { Admin, Barber, Display, NotFound, Reception } from './pages/pages.jsx'
+import Reception from './pages/Reception.jsx'
+import { Admin, Barber, Display, NotFound } from './pages/pages.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

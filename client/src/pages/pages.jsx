@@ -2,8 +2,6 @@ import { Link, useParams } from 'react-router-dom'
 import Placeholder from '../components/Placeholder.jsx'
 import { useT } from '../i18n/index.jsx'
 
-export const StaffPin = () => <Placeholder titleKey="screens.pin" route="(PIN gate for staff screens)" />
-export const Reception = () => <Placeholder titleKey="screens.reception" route="/reception" />
 export const Barber = () => {
   const { name } = useParams()
   return <Placeholder titleKey="screens.barber" route={`/barber/${name}`} />

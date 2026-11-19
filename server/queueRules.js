@@ -93,6 +93,25 @@ function estimateWait(barberId, beforeNumber = Infinity, now = Date.now()) {
   return Math.ceil(ahead / ids.length / 5) * 5
 }
 
+// ---------- auto-call (rule 3a) ----------
+
+// Earliest waiting customers get free working barbers they chose (or any free barber for "Any").
+// Runs after every change that could free a barber or add a customer.
+function autoCall(now = Date.now()) {
+  const waiting = store.customers
+    .filter((c) => c.status === 'waiting')
+    .sort((a, b) => a.number - b.number)
+  for (const c of waiting) {
+    const barber = workingBarbers().find(
+      (b) => (c.barberId === 'any' || c.barberId === b.id) && barberStatus(b) === 'free',
+    )
+    if (!barber) continue
+    c.status = 'called'
+    c.assignedBarberId = barber.id
+    c.calledAt = now
+  }
+}
+
 // ---------- join / cancel ----------
 
 function validateJoin({ name, phone, serviceIds, barberId }) {
@@ -107,10 +126,11 @@ function validateJoin({ name, phone, serviceIds, barberId }) {
 }
 
 // Rule 6 first (existing spot wins), then cutoff, then validation.
-function join(input) {
+// walkIn=true (receptionist): allowed even when online joining is closed.
+function join(input, { walkIn = false } = {}) {
   const existing = findActiveByPhone(String(input?.phone || ''))
   if (existing) return { spot: existing, existing: true }
-  if (!isJoiningOpen()) return { error: 'closed' }
+  if (!walkIn && !isJoiningOpen()) return { error: 'closed' }
   const error = validateJoin(input || {})
   if (error) return { error }
 
@@ -130,6 +150,7 @@ function join(input) {
     finishedAt: null,
   }
   store.customers.push(customer)
+  autoCall()
   return { spot: customer, existing: false }
 }
 
@@ -141,7 +162,112 @@ function cancel(id) {
   c.status = 'cancelled'
   c.assignedBarberId = null
   c.finishedAt = Date.now()
+  autoCall()
   return { spot: c }
+}
+
+// ---------- staff: PIN, call next, no-show (rules 3, 4, 8, 15) ----------
+
+function checkPin(pin) {
+  return String(pin ?? '') === (process.env.STAFF_PIN || '2468')
+}
+
+function noShowAfterMinutes() {
+  const raw = process.env.NOSHOW_MINUTES
+  const v = raw === undefined || raw === '' ? NaN : Number(raw)
+  return Number.isFinite(v) ? v : 10
+}
+
+// Earliest waiting customer this barber may serve: chose this barber or "Any" (never another barber).
+function nextEligibleFor(barber) {
+  return (
+    store.customers
+      .filter((c) => c.status === 'waiting' && (c.barberId === 'any' || c.barberId === barber.id))
+      .sort((a, b) => a.number - b.number)[0] || null
+  )
+}
+
+function callNext(barberId) {
+  const barber = store.barbers.find((b) => b.id === barberId)
+  if (!barber) return { error: 'not_found' }
+  if (!barber.onDuty || barber.onBreak) return { error: 'barber_unavailable' }
+  if (barberStatus(barber) === 'busy') return { error: 'barber_busy' }
+  const next = nextEligibleFor(barber)
+  if (!next) return { error: 'no_eligible' }
+  next.status = 'called'
+  next.assignedBarberId = barber.id
+  next.calledAt = Date.now()
+  return { spot: next }
+}
+
+function noShow(id, now = Date.now()) {
+  const c = findCustomer(id)
+  if (!c) return { error: 'not_found' }
+  if (c.status !== 'called') return { error: 'not_called' }
+  if (now - c.calledAt < noShowAfterMinutes() * 60000) return { error: 'too_early' }
+  c.status = 'no_show'
+  c.assignedBarberId = null
+  c.finishedAt = now
+  autoCall(now)
+  return { spot: c }
+}
+
+function receptionView(now = Date.now()) {
+  const barbers = store.barbers.map((b) => {
+    const status = barberStatus(b)
+    const cur = store.customers.find(
+      (c) => c.assignedBarberId === b.id && (c.status === 'called' || c.status === 'in_chair'),
+    )
+    let current = null
+    if (cur) {
+      const total = totals(cur).minutes
+      const elapsed = cur.startedAt ? Math.floor((now - cur.startedAt) / 60000) : 0
+      current = {
+        id: cur.id,
+        name: cur.name,
+        status: cur.status,
+        services: cur.serviceIds.map((sid) => serviceById(sid)?.name),
+        totalMinutes: total,
+        minutesLeft: cur.status === 'in_chair' ? Math.max(0, total - elapsed) : total,
+      }
+    }
+    return {
+      id: b.id,
+      name: b.name,
+      status,
+      current,
+      canCallNext: status === 'free' && nextEligibleFor(b) !== null,
+    }
+  })
+
+  const queue = store.customers
+    .filter((c) => c.status === 'waiting' || c.status === 'called')
+    .sort((a, b) => (a.status === b.status ? a.number - b.number : a.status === 'called' ? -1 : 1))
+    .map((c) => {
+      const chosen = store.barbers.find((b) => b.id === c.barberId)
+      const assigned = store.barbers.find((b) => b.id === c.assignedBarberId)
+      return {
+        id: c.id,
+        name: c.name,
+        status: c.status,
+        services: c.serviceIds.map((sid) => serviceById(sid)?.name),
+        totalMinutes: totals(c).minutes,
+        barberId: c.barberId,
+        barberName: chosen ? chosen.name : null,
+        calledBarberName: assigned ? assigned.name : null,
+        waitedMinutes: Math.floor((now - c.joinedAt) / 60000),
+        canNoShow:
+          c.status === 'called' && now - c.calledAt >= noShowAfterMinutes() * 60000,
+      }
+    })
+
+  return {
+    barbers,
+    queue,
+    services: store.services.filter((s) => s.on),
+    settings: { queueOpen: store.settings.queueOpen, joiningOpen: isJoiningOpen() },
+    noShowMinutes: noShowAfterMinutes(),
+  }
 }
 
 // ---------- views for the API ----------
@@ -213,6 +339,7 @@ function devAdvance(id) {
     c.status = 'done'
     c.finishedAt = now
     c.assignedBarberId = null
+    autoCall(now)
   } else {
     return { error: 'final_status' }
   }
@@ -223,6 +350,7 @@ function devToggleBreak(barberId) {
   const b = store.barbers.find((x) => x.id === barberId)
   if (!b) return { error: 'not_found' }
   b.onBreak = !b.onBreak
+  autoCall()
   return { barber: b }
 }
 
@@ -233,6 +361,10 @@ module.exports = {
   cancel,
   findCustomer,
   findActiveByPhone,
+  checkPin,
+  callNext,
+  noShow,
+  receptionView,
   spotView,
   publicView,
   devAdvance,

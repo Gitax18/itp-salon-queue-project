@@ -58,7 +58,7 @@ Global rules (apply to every screen)
 - Right (about 60%): waiting list in queue order: token, name, services, preferred barber, waiting time, [ No-show ] (only when Called), [ Cancel ].
 - Behaviour:
   - [ + Add walk-in ] opens a quick form (name, phone, services, barber) -> adds to end of queue.
-  - [ Call next ] on a barber's card calls the earliest eligible customer (rules in 03); row turns gold "Called -> Ravi".
+  - Customers are normally called automatically when a barber is free (rule 3a in 03). [ Call next ] on a barber's card is a manual override: it calls the earliest eligible customer; the row turns gold "Called -> Ravi".
   - [ No-show ] appears after 10 min of Called.
   - Waiting more than 60 min -> row highlighted amber.
 - Empty states: no one waiting -> "No one waiting — walk right in!". [ Call next ] with nobody eligible -> disabled, tooltip "No eligible customer".

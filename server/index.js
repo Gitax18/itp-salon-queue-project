@@ -48,6 +48,49 @@ app.post('/api/spots/:id/cancel', (req, res) => {
   res.json(rules.spotView(result.spot))
 })
 
+// ---------- staff routes (PIN required: header x-staff-pin) ----------
+
+function requirePin(req, res, next) {
+  if (!rules.checkPin(req.get('x-staff-pin'))) return res.status(401).json({ error: 'bad_pin' })
+  next()
+}
+
+app.post('/api/staff/check', (req, res) => {
+  if (!rules.checkPin(req.body?.pin)) return res.status(401).json({ error: 'bad_pin' })
+  res.json({ ok: true })
+})
+
+app.use('/api/reception', requirePin)
+
+app.get('/api/reception', (_req, res) => {
+  res.json(rules.receptionView())
+})
+
+app.post('/api/reception/call-next/:barberId', (req, res) => {
+  const result = rules.callNext(req.params.barberId)
+  if (result.error) return res.status(result.error === 'not_found' ? 404 : 409).json({ error: result.error })
+  res.json({ id: result.spot.id })
+})
+
+app.post('/api/reception/no-show/:id', (req, res) => {
+  const result = rules.noShow(req.params.id)
+  if (result.error) return res.status(result.error === 'not_found' ? 404 : 409).json({ error: result.error })
+  res.json({ id: result.spot.id })
+})
+
+app.post('/api/reception/cancel/:id', (req, res) => {
+  const result = rules.cancel(req.params.id)
+  if (result.error) return res.status(result.error === 'not_found' ? 404 : 409).json({ error: result.error })
+  res.json({ id: result.spot.id })
+})
+
+// Walk-in: same as Join, but allowed even when online joining is closed.
+app.post('/api/reception/walk-in', (req, res) => {
+  const result = rules.join(req.body, { walkIn: true })
+  if (result.error) return res.status(400).json({ error: result.error })
+  res.status(result.existing ? 200 : 201).json({ spot: rules.spotView(result.spot), existing: result.existing })
+})
+
 // TEMPORARY: lets us see Called / In chair / Done on My Status before Reception and Barber screens exist.
 // On by default locally; set ENABLE_DEV_ROUTES=1 to enable in production. Removed in Steps 4-5.
 if (process.env.ENABLE_DEV_ROUTES === '1' || process.env.NODE_ENV !== 'production') {

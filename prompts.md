@@ -14,3 +14,7 @@ Every prompt used, in order (including ones that didn't work).
 6. "I have connected the repository to heroku ... undefined error." / "how should i check whether both the deployed backend and frontend are connected" (questions, no code)
 7. "start the step 3"
    - Result: server store/queueRules/API (join, spots, cancel, public, lookup, temporary dev routes) + client Home/Join on API + new Status screen.
+8. "ok" (approved Step 4 plan: PIN gate + Reception Dashboard, waited-time on rows, NOSHOW_MINUTES for testing)
+   - Result: server staff PIN/call-next/no-show/cancel/walk-in + receptionView; client StaffGate + Reception. Curl-tested rules.
+9. "why haventthe salon is selecting barber for me" / "all barber is free ... it is showing queue and showing all barbers as free" (found a design gap: nothing called customers when a barber was free)
+   - Decision: auto-call free barbers. Updated docs/03-flows-rules.md (rule 3a, flow, checklist) + docs/02-screens.md first, then server autoCall() in queueRules.js. Curl-tested.

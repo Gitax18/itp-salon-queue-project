@@ -3,7 +3,7 @@
 ## Flow: remote customer
 1. Opens Home -> Join -> picks Haircut + "Any barber" -> gets token S-14, 6th in line.
 2. Watches My Status; at 2nd in line gets "Start coming".
-3. Receptionist taps [ Call next ] on Amit's card -> S-14 becomes Called.
+3. As soon as Amit is free, the server calls S-14 automatically (rule 3a) -> S-14 becomes Called. If Amit is already free when S-14 joins, this happens immediately. The receptionist can also tap [ Call next ] on Amit's card as a manual override.
 4. Customer's phone: "It's your turn! Go to Amit" (full screen); TV flashes S-14 with chime.
 5. Amit taps [ Start ] then [ Done ] -> S-14 leaves the queue.
 
@@ -25,6 +25,7 @@ Called but not here after 10 min -> receptionist taps [ No-show ]. If the custom
 1. **Tokens**: S-1, S-2, ... increase through the day, never reused. Reset when the app restarts / new day.
 2. **Order**: first come, first served by join time.
 3. **Call next for barber X** picks the earliest Waiting customer who chose X or "Any". It never picks someone who chose another barber.
+3a. **Auto-call**: whenever a barber could become free (a customer joins or is added as a walk-in, a barber taps Done, a barber comes back from break, a called customer is cancelled or marked no-show), the server calls waiting customers into free working barbers. Customers are handled earliest first; each gets a free barber who they chose, or any free barber if they chose "Any" (first free barber in list order). Rule 3 still applies: nobody is given a barber they didn't choose. Reception's [ Call next ] stays as a manual override.
 4. A barber on break or off duty cannot call next. A barber has at most one Called/In chair customer at a time.
 5. **Waiting-time estimate**:
    - Customer's minutes = sum of their selected services.
@@ -50,7 +51,10 @@ Called but not here after 10 min -> receptionist taps [ No-show ]. If the custom
 - [ ] Phone number with fewer than 10 digits -> cannot confirm
 - [ ] Call next for Amit skips a customer who chose Ravi
 - [ ] Call next for Amit picks the earliest "Any" or Amit customer
-- [ ] Call next -> customer's phone shows "It's your turn" within 5 s
+- [ ] Barber free + customer joins -> called immediately, phone shows "It's your turn"
+- [ ] Barber finishes (Done) -> earliest eligible waiting customer is called automatically
+- [ ] Barber on break is never auto-called; coming back from break -> auto-called
+- [ ] Call next (manual) -> customer's phone shows "It's your turn" within 5 s
 - [ ] Start/Done on Barber View updates Reception and TV within 5 s
 - [ ] Barber cannot go on break with a customer in the chair
 - [ ] No-show, then re-add -> goes to end of queue with a new token
