@@ -6,7 +6,8 @@ import { LangProvider } from './i18n/index.jsx'
 import Layout from './components/Layout.jsx'
 import Home from './pages/Home.jsx'
 import Join from './pages/Join.jsx'
-import { Admin, Barber, Display, NotFound, Reception, Status } from './pages/pages.jsx'
+import Status from './pages/Status.jsx'
+import { Admin, Barber, Display, NotFound, Reception } from './pages/pages.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

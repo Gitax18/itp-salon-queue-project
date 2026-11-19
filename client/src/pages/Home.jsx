@@ -1,18 +1,14 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useT } from '../i18n/index.jsx'
-import {
-  DUMMY_BARBERS,
-  DUMMY_QUEUE,
-  DUMMY_SETTINGS,
-  isJoiningOpen,
-} from '../data/dummy.js'
-import { findSpotByPhone } from '../data/localSpots.js'
+import { api } from '../api.js'
+import { usePolling } from '../usePolling.js'
 
 const CHIP = {
   busy: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
   free: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
   break: 'bg-gray-500/20 text-gray-300 border-gray-500/40',
+  off: 'bg-gray-500/10 text-gray-500 border-gray-600/40',
 }
 
 function AlreadyJoined() {
@@ -22,11 +18,14 @@ function AlreadyJoined() {
   const [phone, setPhone] = useState('')
   const [error, setError] = useState('')
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault()
-    const spot = findSpotByPhone(phone)
-    if (spot) navigate(`/status/${spot.id}`)
-    else setError(t('home.notFound'))
+    try {
+      const { id } = await api(`/api/lookup?phone=${phone}`)
+      navigate(`/status/${id}`)
+    } catch (err) {
+      setError(err.status === 404 ? t('home.notFound') : t('common.serverError'))
+    }
   }
 
   if (!open) {
@@ -70,9 +69,18 @@ function AlreadyJoined() {
 
 export default function Home() {
   const { t } = useT()
-  const joiningOpen = isJoiningOpen()
-  const { waiting, waitMinutes } = DUMMY_QUEUE
-  const closed = !DUMMY_SETTINGS.queueOpen
+  const { data, error } = usePolling('/api/public')
+
+  if (!data) {
+    return (
+      <p className="text-center text-gray-300 mt-10">
+        {error ? t('common.serverError') : t('common.loading')}
+      </p>
+    )
+  }
+
+  const { settings, barbers, queue } = data
+  const closed = !settings.queueOpen
 
   return (
     <div className="max-w-md mx-auto space-y-5">
@@ -88,24 +96,31 @@ export default function Home() {
         >
           {closed
             ? t('home.closed')
-            : `${t('home.open')} · ${t('home.closes')} ${DUMMY_SETTINGS.closesLabel}`}
+            : `${t('home.open')} · ${t('home.closes')} ${settings.closesLabel}`}
         </span>
+        {error && <p className="text-xs text-amber-300">{t('common.serverError')}</p>}
       </div>
 
       <div className="rounded-card bg-charcoal-light p-5 text-center border border-gold/30">
-        {waiting === 0 ? (
+        {queue.waiting === 0 ? (
           <p className="text-lg font-semibold text-gold">{t('home.nobody')}</p>
         ) : (
           <p className="text-lg">
-            <span className="text-3xl font-bold text-gold">{waiting}</span>{' '}
-            {t('home.peopleWaiting')} · {t('home.about')}{' '}
-            <span className="font-bold">{waitMinutes}</span> {t('common.min')}
+            <span className="text-3xl font-bold text-gold">{queue.waiting}</span>{' '}
+            {t('home.peopleWaiting')}
+            {queue.waitMinutes != null && (
+              <>
+                {' '}
+                · {t('home.about')} <span className="font-bold">{queue.waitMinutes}</span>{' '}
+                {t('common.min')}
+              </>
+            )}
           </p>
         )}
       </div>
 
       <ul className="flex flex-wrap justify-center gap-2" aria-label={t('home.barbers')}>
-        {DUMMY_BARBERS.map((b) => (
+        {barbers.map((b) => (
           <li
             key={b.id}
             className={`rounded-full border px-3 py-1.5 text-sm font-medium ${CHIP[b.status]}`}
@@ -115,7 +130,7 @@ export default function Home() {
         ))}
       </ul>
 
-      {joiningOpen ? (
+      {settings.joiningOpen ? (
         <Link
           to="/join"
           className="block w-full min-h-14 leading-14 rounded-2xl bg-gold text-center text-xl font-bold text-charcoal-dark shadow-lg"

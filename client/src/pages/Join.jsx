@@ -1,13 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useT } from '../i18n/index.jsx'
-import {
-  DUMMY_BARBERS,
-  DUMMY_SERVICES,
-  DUMMY_WAIT,
-  isJoiningOpen,
-} from '../data/dummy.js'
-import { findSpotByPhone, saveSpot } from '../data/localSpots.js'
+import { postJson } from '../api.js'
+import { usePolling } from '../usePolling.js'
 
 const MAX_SERVICES = 3
 
@@ -17,14 +12,25 @@ const fieldClass =
 export default function Join() {
   const { t, lang } = useT()
   const navigate = useNavigate()
+  const { data, error } = usePolling('/api/public')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [selected, setSelected] = useState([])
   const [barber, setBarber] = useState('any')
   const [touched, setTouched] = useState({ name: false, phone: false })
   const [maxHit, setMaxHit] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
-  if (!isJoiningOpen()) {
+  if (!data) {
+    return (
+      <p className="text-center text-gray-300 mt-10">
+        {error ? t('common.serverError') : t('common.loading')}
+      </p>
+    )
+  }
+
+  if (!data.settings.joiningOpen) {
     return (
       <div className="max-w-md mx-auto rounded-card bg-charcoal-light p-6 text-center space-y-4">
         <p className="text-amber-300">{t('home.joinClosedMsg')}</p>
@@ -35,14 +41,17 @@ export default function Join() {
     )
   }
 
-  const services = DUMMY_SERVICES.filter((s) => s.on)
+  const services = data.services
+  const barbers = data.barbers.filter((b) => b.status !== 'off')
   const chosen = services.filter((s) => selected.includes(s.id))
   const totalMin = chosen.reduce((sum, s) => sum + s.minutes, 0)
   const totalPrice = chosen.reduce((sum, s) => sum + s.price, 0)
+  const wait = data.waits[barber]
+  const chosenBarber = barbers.find((b) => b.id === barber)
 
   const nameOk = name.trim().length >= 2
   const phoneOk = /^\d{10}$/.test(phone)
-  const canConfirm = nameOk && phoneOk && chosen.length >= 1
+  const canConfirm = nameOk && phoneOk && chosen.length >= 1 && !submitting
 
   function toggleService(id) {
     if (selected.includes(id)) {
@@ -56,19 +65,26 @@ export default function Join() {
     }
   }
 
-  function confirm() {
+  async function confirm() {
     if (!canConfirm) return
-    const existing = findSpotByPhone(phone)
-    if (existing) {
-      navigate(`/status/${existing.id}`, { state: { alreadyInQueue: true } })
-      return
+    setSubmitting(true)
+    setSubmitError('')
+    try {
+      const { spot, existing } = await postJson('/api/join', {
+        name: name.trim(),
+        phone,
+        serviceIds: selected,
+        barberId: barber,
+      })
+      navigate(`/status/${spot.id}`, { state: { alreadyInQueue: existing } })
+    } catch (err) {
+      setSubmitError(err.code === 'closed' ? t('home.joinClosedMsg') : t('join.submitError'))
+      setSubmitting(false)
     }
-    const spot = saveSpot({ name: name.trim(), phone, services: selected, barber })
-    navigate(`/status/${spot.id}`)
   }
 
   return (
-    <div className="max-w-md mx-auto space-y-6 pb-32">
+    <div className="max-w-md mx-auto space-y-6 pb-36">
       <h1 className="text-2xl font-bold text-gold">{t('screens.join')}</h1>
 
       <div className="space-y-1">
@@ -155,7 +171,7 @@ export default function Join() {
             note={t('join.fastest')}
             wide
           />
-          {DUMMY_BARBERS.map((b) => (
+          {barbers.map((b) => (
             <BarberCard
               key={b.id}
               selected={barber === b.id}
@@ -167,7 +183,9 @@ export default function Join() {
             />
           ))}
         </div>
-        {barber === 'imran' && <p className="text-sm text-amber-300">{t('join.onBreakNote')}</p>}
+        {chosenBarber?.status === 'break' && (
+          <p className="text-sm text-amber-300">{t('join.onBreakNote', { barber: chosenBarber.name })}</p>
+        )}
       </fieldset>
 
       <div className="fixed bottom-0 inset-x-0 bg-charcoal-dark border-t border-gold/40 p-4">
@@ -178,10 +196,17 @@ export default function Join() {
             ) : (
               <>
                 {t('join.total')} <b>{totalMin}</b> {t('common.min')} · <b>₹{totalPrice}</b> ·{' '}
-                {t('join.expectedWait')} ~<b>{DUMMY_WAIT[barber]}</b> {t('common.min')}
+                {wait == null ? (
+                  t('join.noBarberWorking')
+                ) : (
+                  <>
+                    {t('join.expectedWait')} ~<b>{wait}</b> {t('common.min')}
+                  </>
+                )}
               </>
             )}
           </p>
+          {submitError && <p className="text-center text-sm text-red-400">{submitError}</p>}
           <button
             type="button"
             onClick={confirm}

@@ -1,5 +1,6 @@
 const express = require('express')
 const cors = require('cors')
+const rules = require('./queueRules')
 
 const app = express()
 const PORT = process.env.PORT || 4000
@@ -11,6 +12,56 @@ app.use(express.json())
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, time: new Date().toISOString() })
 })
+
+// Settings, services, barbers, queue summary, and estimated wait per barber choice.
+app.get('/api/public', (_req, res) => {
+  res.json(rules.publicView())
+})
+
+// Join the queue. An active spot on the same phone is returned instead of a duplicate.
+app.post('/api/join', (req, res) => {
+  const result = rules.join(req.body)
+  if (result.error) {
+    const status = result.error === 'closed' ? 403 : 400
+    return res.status(status).json({ error: result.error })
+  }
+  res.status(result.existing ? 200 : 201).json({ spot: rules.spotView(result.spot), existing: result.existing })
+})
+
+// Find an active spot by phone number (Home: "I already joined").
+app.get('/api/lookup', (req, res) => {
+  const phone = String(req.query.phone || '')
+  const spot = rules.findActiveByPhone(phone)
+  if (!spot) return res.status(404).json({ error: 'not_found' })
+  res.json({ id: spot.id })
+})
+
+app.get('/api/spots/:id', (req, res) => {
+  const c = rules.findCustomer(req.params.id)
+  if (!c) return res.status(404).json({ error: 'not_found' })
+  res.json(rules.spotView(c))
+})
+
+app.post('/api/spots/:id/cancel', (req, res) => {
+  const result = rules.cancel(req.params.id)
+  if (result.error) return res.status(result.error === 'not_found' ? 404 : 409).json({ error: result.error })
+  res.json(rules.spotView(result.spot))
+})
+
+// TEMPORARY: lets us see Called / In chair / Done on My Status before Reception and Barber screens exist.
+// On by default locally; set ENABLE_DEV_ROUTES=1 to enable in production. Removed in Steps 4-5.
+if (process.env.ENABLE_DEV_ROUTES === '1' || process.env.NODE_ENV !== 'production') {
+  app.post('/api/dev/advance/:id', (req, res) => {
+    const result = rules.devAdvance(req.params.id)
+    if (result.error) return res.status(409).json({ error: result.error })
+    res.json(rules.spotView(result.spot))
+  })
+  app.post('/api/dev/break/:barberId', (req, res) => {
+    const result = rules.devToggleBreak(req.params.barberId)
+    if (result.error) return res.status(404).json({ error: result.error })
+    res.json(result.barber)
+  })
+}
 
 app.listen(PORT, () => {
   console.log(`Salon queue server listening on port ${PORT}`)

@@ -11,3 +11,6 @@ Every prompt used, in order (including ones that didn't work).
    - Result: scaffolded client/ (Vite+React+Tailwind, 7 placeholder routes, EN/GU toggle) and server/ (Express /api/health). Build + health check pass.
 5. "commit this and start step 2. I have checked the backend and the frontend and they are working fine."
    - Result: Step 1 committed (033d1f4); Step 2 built Home + Join Queue with dummy data (client-side only).
+6. "I have connected the repository to heroku ... undefined error." / "how should i check whether both the deployed backend and frontend are connected" (questions, no code)
+7. "start the step 3"
+   - Result: server store/queueRules/API (join, spots, cancel, public, lookup, temporary dev routes) + client Home/Join on API + new Status screen.

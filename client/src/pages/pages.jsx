@@ -3,10 +3,6 @@ import Placeholder from '../components/Placeholder.jsx'
 import { useT } from '../i18n/index.jsx'
 
 export const StaffPin = () => <Placeholder titleKey="screens.pin" route="(PIN gate for staff screens)" />
-export const Status = () => {
-  const { id } = useParams()
-  return <Placeholder titleKey="screens.status" route={`/status/${id}`} />
-}
 export const Reception = () => <Placeholder titleKey="screens.reception" route="/reception" />
 export const Barber = () => {
   const { name } = useParams()
