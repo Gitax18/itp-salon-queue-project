@@ -10,7 +10,8 @@ import Status from './pages/Status.jsx'
 import Reception from './pages/Reception.jsx'
 import Barber from './pages/Barber.jsx'
 import Display from './pages/Display.jsx'
-import { Admin, NotFound } from './pages/pages.jsx'
+import Admin from './pages/Admin.jsx'
+import { NotFound } from './pages/pages.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

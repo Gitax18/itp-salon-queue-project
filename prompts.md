@@ -20,3 +20,6 @@ Every prompt used, in order (including ones that didn't work).
    - Decision: auto-call free barbers. Updated docs/03-flows-rules.md (rule 3a, flow, checklist) + docs/02-screens.md first, then server autoCall() in queueRules.js. Curl-tested.
 10. "ok" (approved Step 5 plan: Barber View + TV, shared staff PIN, Web Audio chime, per-customer wait on TV)
    - Result: server barberStart/Done/setBreak/barberView/displayView + /api/barber/*, /api/display; removed temporary dev routes; client Barber.jsx + Display.jsx.
+11. "Push the step 5 changes and start working on step 6, but before implementing anything, give me the brief of your plan..." then "Ok"
+   - Step 5 pushed (b2879d9). Step 6 plan approved: off-duty rule, IST stats, edit/add (no delete) services.
+   - Result: docs rules 16-18; server admin rules + /api/admin/*; client Admin.jsx; Status off-duty note; Barber off-duty handling.

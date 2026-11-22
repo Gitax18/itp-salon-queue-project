@@ -43,7 +43,7 @@ function Panel() {
     try {
       await postJson(`/api/barber/${encodeURIComponent(barberId)}/${action}`, body, { staff: true })
     } catch (err) {
-      const known = ['finish_first', 'nothing_to_start', 'nothing_to_finish']
+      const known = ['finish_first', 'nothing_to_start', 'nothing_to_finish', 'off_duty']
       setMessage(known.includes(err.code) ? t(`barber.err.${err.code}`) : t('barber.err.generic'))
     }
     setBusy(false)
@@ -83,7 +83,7 @@ function Panel() {
           role="switch"
           aria-checked={!onBreak}
           onClick={() => act('break', { onBreak: !onBreak })}
-          disabled={busy}
+          disabled={busy || !data.onDuty}
           className={`min-h-12 rounded-full px-5 font-semibold border-2 disabled:opacity-50 ${
             onBreak
               ? 'border-gray-400 bg-gray-500/20 text-gray-200'
@@ -94,6 +94,11 @@ function Panel() {
         </button>
       </div>
 
+      {!data.onDuty && (
+        <p className="rounded-xl bg-amber-500/15 border border-amber-500/40 p-3 text-sm text-amber-300">
+          {t('barber.offDuty')}
+        </p>
+      )}
       {error && <p className="text-xs text-amber-300">{t('common.serverError')}</p>}
       {message && (
         <p role="alert" className="rounded-xl bg-red-500/15 border border-red-500/40 p-3 text-sm text-red-300">

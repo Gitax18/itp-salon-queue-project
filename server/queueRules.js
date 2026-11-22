@@ -293,6 +293,7 @@ function spotView(c) {
     barberId: c.barberId,
     barberName: chosen ? chosen.name : null,
     barberOnBreak: Boolean(chosen && chosen.onDuty && chosen.onBreak),
+    barberOffDuty: Boolean(chosen && !chosen.onDuty),
     calledBarberName: assigned ? assigned.name : null,
     position,
     waitMinutes: waiting ? estimateWait(c.barberId, c.number) : 0,
@@ -352,10 +353,11 @@ function barberDone(barberId, now = Date.now()) {
   return { spot: cur }
 }
 
-// Rule 11: no break while a customer is Called or In chair.
+// Rule 11: no break while a customer is Called or In chair. Rule 16: off-duty barbers can't go on break.
 function setBreak(barberId, onBreak) {
   const barber = store.barbers.find((b) => b.id === barberId)
   if (!barber) return { error: 'not_found' }
+  if (!barber.onDuty) return { error: 'off_duty' }
   if (onBreak && currentFor(barber)) return { error: 'finish_first' }
   barber.onBreak = Boolean(onBreak)
   autoCall()
@@ -419,7 +421,118 @@ function displayView() {
   }
 }
 
+// ---------- owner settings (rules 16-18) ----------
+
+function dayKey(ms) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(ms))
+}
+
+// Rule 17. "Today" = salon calendar day (Asia/Kolkata).
+function todayStats(now = Date.now()) {
+  const today = dayKey(now)
+  const isToday = (ms) => ms != null && dayKey(ms) === today
+  const served = store.customers.filter((c) => c.status === 'done' && isToday(c.finishedAt)).length
+  const noShows = store.customers.filter((c) => c.status === 'no_show' && isToday(c.finishedAt)).length
+  const called = store.customers.filter((c) => isToday(c.calledAt))
+  const averageWait = called.length
+    ? Math.round(called.reduce((sum, c) => sum + (c.calledAt - c.joinedAt) / 60000, 0) / called.length)
+    : null
+  return { served, noShows, averageWait }
+}
+
+function adminView() {
+  return {
+    settings: {
+      queueOpen: store.settings.queueOpen,
+      joiningOpen: isJoiningOpen(),
+      closesLabel: store.settings.closesLabel,
+    },
+    services: store.services,
+    barbers: store.barbers.map((b) => ({
+      id: b.id,
+      name: b.name,
+      onDuty: b.onDuty,
+      status: barberStatus(b),
+    })),
+    stats: todayStats(),
+  }
+}
+
+function setQueueOpen(open) {
+  store.settings.queueOpen = Boolean(open)
+  return {}
+}
+
+// Rule 16
+function setBarberDuty(barberId, onDuty) {
+  const barber = store.barbers.find((b) => b.id === barberId)
+  if (!barber) return { error: 'not_found' }
+  if (!onDuty && currentFor(barber)) return { error: 'finish_first' }
+  barber.onDuty = Boolean(onDuty)
+  if (!barber.onDuty) barber.onBreak = false
+  autoCall()
+  return {}
+}
+
+// Rule 18 validation. Returns an error code or null. `partial` allows missing fields (edits).
+function validateServiceFields(f, partial) {
+  const has = (k) => f[k] !== undefined
+  if (!partial || has('name')) {
+    const en = String(f.name?.en ?? '').trim()
+    const gu = String(f.name?.gu ?? '').trim()
+    if (en.length < 1 || en.length > 40 || gu.length < 1 || gu.length > 40) return 'invalid_name'
+  }
+  if (!partial || has('minutes')) {
+    if (!Number.isInteger(f.minutes) || f.minutes < 5 || f.minutes > 180) return 'invalid_minutes'
+  }
+  if (!partial || has('price')) {
+    if (!Number.isInteger(f.price) || f.price < 0 || f.price > 5000) return 'invalid_price'
+  }
+  if (has('on') && typeof f.on !== 'boolean') return 'invalid_on'
+  return null
+}
+
+function addService(input) {
+  const f = input || {}
+  const error = validateServiceFields(f, false)
+  if (error) return { error }
+  const base = String(f.name.en).trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'service'
+  let id = base
+  for (let n = 2; store.services.some((s) => s.id === id); n++) id = `${base}-${n}`
+  store.services.push({
+    id,
+    name: { en: String(f.name.en).trim(), gu: String(f.name.gu).trim() },
+    minutes: f.minutes,
+    price: f.price,
+    on: true,
+  })
+  return {}
+}
+
+function updateService(id, input) {
+  const service = serviceById(id)
+  if (!service) return { error: 'not_found' }
+  const f = input || {}
+  const error = validateServiceFields(f, true)
+  if (error) return { error }
+  if (f.name) service.name = { en: String(f.name.en).trim(), gu: String(f.name.gu).trim() }
+  if (f.minutes !== undefined) service.minutes = f.minutes
+  if (f.price !== undefined) service.price = f.price
+  if (f.on !== undefined) service.on = f.on
+  return {}
+}
+
 module.exports = {
+  adminView,
+  setQueueOpen,
+  setBarberDuty,
+  addService,
+  updateService,
   isJoiningOpen,
   estimateWait,
   join,

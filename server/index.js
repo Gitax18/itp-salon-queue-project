@@ -111,6 +111,28 @@ app.post('/api/barber/:id/start', barberAction((req) => rules.barberStart(req.pa
 app.post('/api/barber/:id/done', barberAction((req) => rules.barberDone(req.params.id)))
 app.post('/api/barber/:id/break', barberAction((req) => rules.setBreak(req.params.id, req.body?.onBreak)))
 
+// Owner settings (PIN required)
+app.use('/api/admin', requirePin)
+
+app.get('/api/admin', (_req, res) => {
+  res.json(rules.adminView())
+})
+
+function adminAction(fn, okStatus = 200) {
+  return (req, res) => {
+    const result = fn(req)
+    if (result.error) {
+      const status = result.error === 'not_found' ? 404 : result.error === 'finish_first' ? 409 : 400
+      return res.status(status).json({ error: result.error })
+    }
+    res.status(okStatus).json(rules.adminView())
+  }
+}
+app.post('/api/admin/queue', adminAction((req) => rules.setQueueOpen(req.body?.open)))
+app.post('/api/admin/barbers/:id/duty', adminAction((req) => rules.setBarberDuty(req.params.id, req.body?.onDuty)))
+app.post('/api/admin/services', adminAction((req) => rules.addService(req.body), 201))
+app.put('/api/admin/services/:id', adminAction((req) => rules.updateService(req.params.id, req.body)))
+
 // Waiting-area TV feed (public; tokens and barber names only)
 app.get('/api/display', (_req, res) => {
   res.json(rules.displayView())

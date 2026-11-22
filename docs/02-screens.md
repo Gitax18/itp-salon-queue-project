@@ -45,7 +45,7 @@ Global rules (apply to every screen)
   - Circular countdown "about 35 min" (updates itself).
   - Details card: name, services, total price, chosen barber.
   - Banner when 2nd in line: "Start coming to the salon".
-  - Barber chosen is on break: amber note "Ravi is on break".
+  - Barber chosen is on break or off duty: amber note "Ravi is on break" / "Ravi is off duty today".
   - [ Cancel my spot ] -> confirmation pop-up "Leave the queue?" [ Yes, cancel ] [ Keep my spot ].
 - Called state: full-screen gold "It's your turn! Go to Ravi", large text, gentle pulse, phone vibration. Shows a 10-minute reminder "Please arrive within 10 min".
 - Other end states: In chair -> "Enjoy your service", Done -> "Thank you!" + [ Back to home ], Cancelled / No-show -> short message + [ Join again ] (goes to /join; gets a new token at the end).
@@ -90,5 +90,5 @@ Global rules (apply to every screen)
   - Stats cards: customers served today, average wait, no-shows.
   - Services list: name EN, name GU, minutes, price, on/off toggle, [ Edit ] and [ + Add service ].
   - Barbers on duty today: toggle per barber.
-- Behaviour: turning a service off hides it from /join immediately (people already in the queue keep it). Closing the queue disables Join with the message on Home and Join. Validation: minutes 5–180, price 0–5000.
+- Behaviour: turning a service off hides it from /join immediately (people already in the queue keep it). Closing the queue disables Join with the message on Home and Join. Validation: minutes 5–180, price 0–5000, EN and GU names required. [ Edit ] and [ + Add service ] open the same small form (name EN, name GU, minutes, price). Services are never deleted, only turned off. Switching a barber off duty is blocked while they have a customer ("Finish the current customer first"). Rules 16-18 in 03.
 - Empty: no stats yet -> cards show 0 / "—".

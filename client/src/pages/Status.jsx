@@ -211,9 +211,12 @@ export default function Status() {
       </div>
 
       {spot.waitMinutes == null ? (
-        <p className="rounded-xl bg-charcoal-light p-4 text-center text-amber-300">
-          {t('status.noBarber')}
-        </p>
+        !spot.barberOnBreak &&
+        !spot.barberOffDuty && (
+          <p className="rounded-xl bg-charcoal-light p-4 text-center text-amber-300">
+            {t('status.noBarber')}
+          </p>
+        )
       ) : (
         <WaitRing minutes={spot.waitMinutes} start={startWait.current} />
       )}
@@ -221,6 +224,12 @@ export default function Status() {
       {spot.barberOnBreak && (
         <p className="rounded-xl bg-amber-500/15 border border-amber-500/40 p-3 text-center text-sm text-amber-300">
           {t('status.onBreak', { barber: spot.barberName })}
+        </p>
+      )}
+
+      {spot.barberOffDuty && (
+        <p className="rounded-xl bg-amber-500/15 border border-amber-500/40 p-3 text-center text-sm text-amber-300">
+          {t('status.offDuty', { barber: spot.barberName })}
         </p>
       )}
 

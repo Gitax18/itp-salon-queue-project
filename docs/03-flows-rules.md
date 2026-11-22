@@ -43,6 +43,9 @@ Called but not here after 10 min -> receptionist taps [ No-show ]. If the custom
 13. **Sync**: all screens poll the server every 3 s; any change shows on every screen within 5 s. The server holds the single source of truth.
 14. **Queue rules live in ONE module on the server** (call next, wait estimate, status transitions). Screens only display results.
 15. **Staff PIN**: reception, barber and admin require PIN 2468; /display and customer screens do not. The server rejects staff actions without the PIN.
+16. **Barber off duty** (owner toggle on /admin): blocked while that barber has a Called or In-chair customer ("finish the current customer first"). Off-duty barbers are never called or auto-called and don't count as working for wait estimates. Customers still waiting who chose that barber keep their spot and see "Ravi is off duty today" (like the break note); "Any" customers are unaffected. Switching a barber back on duty runs auto-call (rule 3a). An off-duty barber cannot be set on break.
+17. **Today's stats** (owner screen). "Today" = the salon's calendar day (Asia/Kolkata). Served = customers marked Done today. No-shows = customers marked No-show today. Average wait = average minutes from joining to being called, over customers called today. With no data, show 0 / "—".
+18. **Owner edits services**: add, edit and turn on/off; never delete. EN and GU names are required, minutes 5-180, price 0-5000. Editing minutes or price changes the wait estimate for everyone still waiting. Turning a service off only hides it from new joiners and walk-ins (rule 12).
 
 ## Test checklist
 - [ ] Join with 2 services -> correct total time and price shown
@@ -64,6 +67,12 @@ Called but not here after 10 min -> receptionist taps [ No-show ]. If the custom
 - [ ] Barber on break -> their customers see "Ravi is on break"
 - [ ] Close online queue -> Join button disabled with message; walk-in still works
 - [ ] Turn a service off -> disappears from Join
+- [ ] Edit a service's minutes/price -> Join summary and wait estimates use the new values
+- [ ] Add a service -> appears on Join; turn it off -> disappears, people already queued keep it
+- [ ] Service with minutes 3 or price 6000 -> rejected with a clear message
+- [ ] Barber off duty -> not selectable on Join, never called; blocked while a customer is with them
+- [ ] Barber back on duty -> waiting customers are auto-called
+- [ ] Stats show served, average wait and no-shows for today; 0 / "—" when empty
 - [ ] Wrong staff PIN -> blocked; correct PIN -> opens
 - [ ] Language toggle switches all labels to Gujarati, nothing overflows
 - [ ] Phone, tablet and TV windows all stay in sync

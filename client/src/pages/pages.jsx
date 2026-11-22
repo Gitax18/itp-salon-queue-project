@@ -1,8 +1,6 @@
 import { Link } from 'react-router-dom'
-import Placeholder from '../components/Placeholder.jsx'
 import { useT } from '../i18n/index.jsx'
 
-export const Admin = () => <Placeholder titleKey="screens.admin" route="/admin" />
 export const NotFound = () => {
   const { t } = useT()
   return (
