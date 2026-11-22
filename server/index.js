@@ -91,20 +91,30 @@ app.post('/api/reception/walk-in', (req, res) => {
   res.status(result.existing ? 200 : 201).json({ spot: rules.spotView(result.spot), existing: result.existing })
 })
 
-// TEMPORARY: lets us see Called / In chair / Done on My Status before Reception and Barber screens exist.
-// On by default locally; set ENABLE_DEV_ROUTES=1 to enable in production. Removed in Steps 4-5.
-if (process.env.ENABLE_DEV_ROUTES === '1' || process.env.NODE_ENV !== 'production') {
-  app.post('/api/dev/advance/:id', (req, res) => {
-    const result = rules.devAdvance(req.params.id)
-    if (result.error) return res.status(409).json({ error: result.error })
-    res.json(rules.spotView(result.spot))
-  })
-  app.post('/api/dev/break/:barberId', (req, res) => {
-    const result = rules.devToggleBreak(req.params.barberId)
-    if (result.error) return res.status(404).json({ error: result.error })
-    res.json(result.barber)
-  })
+// Barber screen (PIN required)
+app.use('/api/barber', requirePin)
+
+app.get('/api/barber/:id', (req, res) => {
+  const view = rules.barberView(req.params.id)
+  if (!view) return res.status(404).json({ error: 'not_found' })
+  res.json(view)
+})
+
+function barberAction(fn) {
+  return (req, res) => {
+    const result = fn(req)
+    if (result.error) return res.status(result.error === 'not_found' ? 404 : 409).json({ error: result.error })
+    res.json(rules.barberView(req.params.id))
+  }
 }
+app.post('/api/barber/:id/start', barberAction((req) => rules.barberStart(req.params.id)))
+app.post('/api/barber/:id/done', barberAction((req) => rules.barberDone(req.params.id)))
+app.post('/api/barber/:id/break', barberAction((req) => rules.setBreak(req.params.id, req.body?.onBreak)))
+
+// Waiting-area TV feed (public; tokens and barber names only)
+app.get('/api/display', (_req, res) => {
+  res.json(rules.displayView())
+})
 
 app.listen(PORT, () => {
   console.log(`Salon queue server listening on port ${PORT}`)

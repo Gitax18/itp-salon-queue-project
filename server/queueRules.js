@@ -318,40 +318,105 @@ function publicView() {
   }
 }
 
-// ---------- TEMPORARY dev helpers (removed in Steps 4-5 when Reception/Barber screens exist) ----------
+// ---------- barber actions (rules 4, 11) ----------
 
-// waiting -> called (assign chosen barber, or first free working barber) -> in_chair -> done
-function devAdvance(id) {
-  const c = findCustomer(id)
-  if (!c) return { error: 'not_found' }
-  const now = Date.now()
-  if (c.status === 'waiting') {
-    const candidates = workingBarbers().filter((b) => c.barberId === 'any' || b.id === c.barberId)
-    const target = candidates.find((b) => barberStatus(b) === 'free') || candidates[0]
-    if (!target) return { error: 'no_barber' }
-    c.status = 'called'
-    c.assignedBarberId = target.id
-    c.calledAt = now
-  } else if (c.status === 'called') {
-    c.status = 'in_chair'
-    c.startedAt = now
-  } else if (c.status === 'in_chair') {
-    c.status = 'done'
-    c.finishedAt = now
-    c.assignedBarberId = null
-    autoCall(now)
-  } else {
-    return { error: 'final_status' }
-  }
-  return { spot: c }
+function currentFor(barber) {
+  return (
+    store.customers.find(
+      (c) => c.assignedBarberId === barber.id && (c.status === 'called' || c.status === 'in_chair'),
+    ) || null
+  )
 }
 
-function devToggleBreak(barberId) {
-  const b = store.barbers.find((x) => x.id === barberId)
-  if (!b) return { error: 'not_found' }
-  b.onBreak = !b.onBreak
+// Called -> In chair
+function barberStart(barberId, now = Date.now()) {
+  const barber = store.barbers.find((b) => b.id === barberId)
+  if (!barber) return { error: 'not_found' }
+  const cur = currentFor(barber)
+  if (!cur || cur.status !== 'called') return { error: 'nothing_to_start' }
+  cur.status = 'in_chair'
+  cur.startedAt = now
+  return { spot: cur }
+}
+
+// In chair -> Done, then the next eligible customer is called automatically (rule 3a)
+function barberDone(barberId, now = Date.now()) {
+  const barber = store.barbers.find((b) => b.id === barberId)
+  if (!barber) return { error: 'not_found' }
+  const cur = currentFor(barber)
+  if (!cur || cur.status !== 'in_chair') return { error: 'nothing_to_finish' }
+  cur.status = 'done'
+  cur.finishedAt = now
+  cur.assignedBarberId = null
+  autoCall(now)
+  return { spot: cur }
+}
+
+// Rule 11: no break while a customer is Called or In chair.
+function setBreak(barberId, onBreak) {
+  const barber = store.barbers.find((b) => b.id === barberId)
+  if (!barber) return { error: 'not_found' }
+  if (onBreak && currentFor(barber)) return { error: 'finish_first' }
+  barber.onBreak = Boolean(onBreak)
   autoCall()
-  return { barber: b }
+  return { barber }
+}
+
+function barberView(barberId, now = Date.now()) {
+  const barber = store.barbers.find((b) => b.id === barberId)
+  if (!barber) return null
+  const cur = currentFor(barber)
+  const next = barber.onDuty && !barber.onBreak ? nextEligibleFor(barber) : null
+  const view = (c) => ({
+    id: c.id,
+    name: c.name,
+    status: c.status,
+    services: c.serviceIds.map((sid) => serviceById(sid)?.name),
+    totalMinutes: totals(c).minutes,
+  })
+  return {
+    id: barber.id,
+    name: barber.name,
+    onDuty: barber.onDuty,
+    onBreak: barber.onBreak,
+    status: barberStatus(barber),
+    current: cur
+      ? {
+          ...view(cur),
+          startedAt: cur.startedAt,
+          elapsedSeconds: cur.startedAt ? Math.floor((now - cur.startedAt) / 1000) : 0,
+        }
+      : null,
+    next: next ? view(next) : null,
+  }
+}
+
+// Public waiting-area TV feed: tokens and barber names only (no customer names or phones).
+function displayView() {
+  const upNext = store.customers
+    .filter((c) => c.status === 'waiting')
+    .sort((a, b) => a.number - b.number)
+    .slice(0, 5)
+    .map((c) => ({ id: c.id, waitMinutes: estimateWait(c.barberId, c.number) }))
+  return {
+    settings: {
+      queueOpen: store.settings.queueOpen,
+      joiningOpen: isJoiningOpen(),
+      closesLabel: store.settings.closesLabel,
+    },
+    barbers: store.barbers.map((b) => {
+      const cur = currentFor(b)
+      return {
+        id: b.id,
+        name: b.name,
+        status: barberStatus(b),
+        nowToken: cur ? cur.id : null,
+        nowStatus: cur ? cur.status : null,
+      }
+    }),
+    upNext,
+    waiting: store.customers.filter((c) => c.status === 'waiting').length,
+  }
 }
 
 module.exports = {
@@ -367,6 +432,9 @@ module.exports = {
   receptionView,
   spotView,
   publicView,
-  devAdvance,
-  devToggleBreak,
+  barberStart,
+  barberDone,
+  setBreak,
+  barberView,
+  displayView,
 }

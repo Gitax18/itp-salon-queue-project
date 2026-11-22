@@ -1,12 +1,7 @@
-import { Link, useParams } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import Placeholder from '../components/Placeholder.jsx'
 import { useT } from '../i18n/index.jsx'
 
-export const Barber = () => {
-  const { name } = useParams()
-  return <Placeholder titleKey="screens.barber" route={`/barber/${name}`} />
-}
-export const Display = () => <Placeholder titleKey="screens.display" route="/display" />
 export const Admin = () => <Placeholder titleKey="screens.admin" route="/admin" />
 export const NotFound = () => {
   const { t } = useT()

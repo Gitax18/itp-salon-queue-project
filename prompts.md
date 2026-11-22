@@ -18,3 +18,5 @@ Every prompt used, in order (including ones that didn't work).
    - Result: server staff PIN/call-next/no-show/cancel/walk-in + receptionView; client StaffGate + Reception. Curl-tested rules.
 9. "why haventthe salon is selecting barber for me" / "all barber is free ... it is showing queue and showing all barbers as free" (found a design gap: nothing called customers when a barber was free)
    - Decision: auto-call free barbers. Updated docs/03-flows-rules.md (rule 3a, flow, checklist) + docs/02-screens.md first, then server autoCall() in queueRules.js. Curl-tested.
+10. "ok" (approved Step 5 plan: Barber View + TV, shared staff PIN, Web Audio chime, per-customer wait on TV)
+   - Result: server barberStart/Done/setBreak/barberView/displayView + /api/barber/*, /api/display; removed temporary dev routes; client Barber.jsx + Display.jsx.
