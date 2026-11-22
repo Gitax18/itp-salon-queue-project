@@ -26,3 +26,6 @@ Every prompt used, in order (including ones that didn't work).
 12. "commit step 6, push it and give next plan brief." then "Ok" (Step 7: rules/edge cases/polish)
    - Step 6 pushed (3be6e8b). Step 7 approved: automated rules test, Gujarati table for proofreading, browser checks if available.
    - Result: injectable clock + store.reset(); server/test/rules.test.js (40 tests, all pass); CI runs tests; header link tap target and aria-label fixes; docs/gujarati-labels.md generated. No browser tool in this session, so visual checks left for the user.
+13. "why vercel is not building from main... /admin url is not working" / "It is working." (diagnosis: Vercel was fine; Heroku CORS_ORIGIN held a one-off deployment URL)
+14. "Now improvised the README, add URL of frontend (...e9m9ntnlc...) and backend (...). Write a brief about User flow, techstack, features, installation, how we developed this phase by phase."
+   - Result: README rewritten. Used the stable alias https://itp-salon-queue-project.vercel.app instead of the e9m9ntnlc deployment URL (that one redirects to a Vercel login, so it fails "opens without setup").
