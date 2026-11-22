@@ -1,9 +1,10 @@
 # Salon Queue Management System
 
-**Live demo:** https://itp-salon-queue-project.vercel.app
-**Backend health check:** https://itp-salon-b7d7a9417e5b.herokuapp.com/api/health
-**Hosted on:** Vercel (frontend) + Heroku (backend)
-**Staff test PIN (reception / barber / owner screens):** `2468`
+**Live demo ( Vercel Frontend ):** https://itp-salon-queue-project.vercel.app
+
+**Backend health check ( Heroku ):** https://itp-salon-b7d7a9417e5b.herokuapp.com/api/health
+
+**Admin login PIN ( at /admin ):** `2468`
 
 A queue app for a hair salon. Customers join from their phone, see their place and estimated wait, and get called automatically; the receptionist, barbers and owner run the salon from their own screens; a TV in the waiting area shows who is next. Everything is bilingual (English / ગુજરાતી) and stays in sync across devices within a few seconds.
 
