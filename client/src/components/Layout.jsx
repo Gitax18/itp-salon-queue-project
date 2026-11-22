@@ -2,10 +2,10 @@ import { Link, Outlet } from 'react-router-dom'
 import { useT } from '../i18n/index.jsx'
 
 function LangToggle() {
-  const { lang, setLang } = useT()
+  const { lang, setLang, t } = useT()
   const base = 'min-h-11 min-w-11 px-3 rounded-full text-sm font-semibold transition-colors'
   return (
-    <div className="flex gap-1 rounded-full bg-charcoal-dark p-1" role="group" aria-label="Language">
+    <div className="flex gap-1 rounded-full bg-charcoal-dark p-1" role="group" aria-label={t('language')}>
       <button
         type="button"
         onClick={() => setLang('en')}
@@ -31,7 +31,7 @@ export default function Layout() {
   return (
     <div className="min-h-screen">
       <header className="flex items-center justify-between gap-3 px-4 py-3 border-b border-charcoal-light">
-        <Link to="/" className="text-xl font-bold text-gold">
+        <Link to="/" className="inline-flex min-h-11 items-center text-xl font-bold text-gold">
           {t('salonName')}
         </Link>
         <LangToggle />

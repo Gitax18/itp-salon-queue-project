@@ -5,9 +5,16 @@ const store = require('./store')
 const ACTIVE = ['waiting', 'called', 'in_chair']
 const TIMEZONE = 'Asia/Kolkata'
 
+// One clock for every rule, so tests can move time (see test/rules.test.js).
+let clock = () => Date.now()
+const nowMs = () => clock()
+function __setClock(fn) {
+  clock = fn || (() => Date.now())
+}
+
 // ---------- helpers ----------
 
-function minutesNowLocal(now = new Date()) {
+function minutesNowLocal(now = new Date(nowMs())) {
   const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone: TIMEZONE,
     hour: '2-digit',
@@ -20,7 +27,7 @@ function minutesNowLocal(now = new Date()) {
 
 // Rule 10: online joining closes 30 min before closing, or when owner closes the queue.
 // IGNORE_HOURS=1 skips the clock check (for testing outside salon hours).
-function isJoiningOpen(now = new Date()) {
+function isJoiningOpen(now = new Date(nowMs())) {
   const { queueOpen, closesAt, cutoffMinutes } = store.settings
   if (!queueOpen) return false
   if (process.env.IGNORE_HOURS === '1') return true
@@ -69,7 +76,7 @@ function findActiveByPhone(phone) {
 
 // Minutes until a customer who chose `barberId` and sits behind everyone with number < beforeNumber
 // would reach a chair. null = no eligible barber is working.
-function estimateWait(barberId, beforeNumber = Infinity, now = Date.now()) {
+function estimateWait(barberId, beforeNumber = Infinity, now = nowMs()) {
   const eligible = workingBarbers().filter((b) => barberId === 'any' || b.id === barberId)
   if (eligible.length === 0) return null
   const ids = eligible.map((b) => b.id)
@@ -97,7 +104,7 @@ function estimateWait(barberId, beforeNumber = Infinity, now = Date.now()) {
 
 // Earliest waiting customers get free working barbers they chose (or any free barber for "Any").
 // Runs after every change that could free a barber or add a customer.
-function autoCall(now = Date.now()) {
+function autoCall(now = nowMs()) {
   const waiting = store.customers
     .filter((c) => c.status === 'waiting')
     .sort((a, b) => a.number - b.number)
@@ -144,7 +151,7 @@ function join(input, { walkIn = false } = {}) {
     barberId: input.barberId,
     status: 'waiting',
     assignedBarberId: null,
-    joinedAt: Date.now(),
+    joinedAt: nowMs(),
     calledAt: null,
     startedAt: null,
     finishedAt: null,
@@ -161,7 +168,7 @@ function cancel(id) {
   if (c.status !== 'waiting' && c.status !== 'called') return { error: 'not_cancellable' }
   c.status = 'cancelled'
   c.assignedBarberId = null
-  c.finishedAt = Date.now()
+  c.finishedAt = nowMs()
   autoCall()
   return { spot: c }
 }
@@ -196,11 +203,11 @@ function callNext(barberId) {
   if (!next) return { error: 'no_eligible' }
   next.status = 'called'
   next.assignedBarberId = barber.id
-  next.calledAt = Date.now()
+  next.calledAt = nowMs()
   return { spot: next }
 }
 
-function noShow(id, now = Date.now()) {
+function noShow(id, now = nowMs()) {
   const c = findCustomer(id)
   if (!c) return { error: 'not_found' }
   if (c.status !== 'called') return { error: 'not_called' }
@@ -212,7 +219,7 @@ function noShow(id, now = Date.now()) {
   return { spot: c }
 }
 
-function receptionView(now = Date.now()) {
+function receptionView(now = nowMs()) {
   const barbers = store.barbers.map((b) => {
     const status = barberStatus(b)
     const cur = store.customers.find(
@@ -330,7 +337,7 @@ function currentFor(barber) {
 }
 
 // Called -> In chair
-function barberStart(barberId, now = Date.now()) {
+function barberStart(barberId, now = nowMs()) {
   const barber = store.barbers.find((b) => b.id === barberId)
   if (!barber) return { error: 'not_found' }
   const cur = currentFor(barber)
@@ -341,7 +348,7 @@ function barberStart(barberId, now = Date.now()) {
 }
 
 // In chair -> Done, then the next eligible customer is called automatically (rule 3a)
-function barberDone(barberId, now = Date.now()) {
+function barberDone(barberId, now = nowMs()) {
   const barber = store.barbers.find((b) => b.id === barberId)
   if (!barber) return { error: 'not_found' }
   const cur = currentFor(barber)
@@ -364,7 +371,7 @@ function setBreak(barberId, onBreak) {
   return { barber }
 }
 
-function barberView(barberId, now = Date.now()) {
+function barberView(barberId, now = nowMs()) {
   const barber = store.barbers.find((b) => b.id === barberId)
   if (!barber) return null
   const cur = currentFor(barber)
@@ -433,7 +440,7 @@ function dayKey(ms) {
 }
 
 // Rule 17. "Today" = salon calendar day (Asia/Kolkata).
-function todayStats(now = Date.now()) {
+function todayStats(now = nowMs()) {
   const today = dayKey(now)
   const isToday = (ms) => ms != null && dayKey(ms) === today
   const served = store.customers.filter((c) => c.status === 'done' && isToday(c.finishedAt)).length
@@ -528,6 +535,7 @@ function updateService(id, input) {
 }
 
 module.exports = {
+  __setClock,
   adminView,
   setQueueOpen,
   setBarberDuty,

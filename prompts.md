@@ -23,3 +23,6 @@ Every prompt used, in order (including ones that didn't work).
 11. "Push the step 5 changes and start working on step 6, but before implementing anything, give me the brief of your plan..." then "Ok"
    - Step 5 pushed (b2879d9). Step 6 plan approved: off-duty rule, IST stats, edit/add (no delete) services.
    - Result: docs rules 16-18; server admin rules + /api/admin/*; client Admin.jsx; Status off-duty note; Barber off-duty handling.
+12. "commit step 6, push it and give next plan brief." then "Ok" (Step 7: rules/edge cases/polish)
+   - Step 6 pushed (3be6e8b). Step 7 approved: automated rules test, Gujarati table for proofreading, browser checks if available.
+   - Result: injectable clock + store.reset(); server/test/rules.test.js (40 tests, all pass); CI runs tests; header link tap target and aria-label fixes; docs/gujarati-labels.md generated. No browser tool in this session, so visual checks left for the user.

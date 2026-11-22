@@ -30,10 +30,15 @@ jobs:
           npm ci
           npm run build
 
-      - name: Server smoke test
+      - name: Server rules tests
         working-directory: server
         run: |
           npm ci
+          npm test
+
+      - name: Server smoke test
+        working-directory: server
+        run: |
           PORT=4010 node index.js &
           sleep 2
           curl --fail http://localhost:4010/api/health
